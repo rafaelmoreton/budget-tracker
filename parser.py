@@ -1,10 +1,10 @@
 import re
+import csv
 from typing import Dict, Any
 
 # ----------------------------------------------------------------------
 # Regexes
 # ----------------------------------------------------------------------
-
 TRANSACTION_RE = re.compile(
     r"^(?P<date>\d{2}/\d{2})\s+"
     r"(?P<description>.+?)"
@@ -15,17 +15,17 @@ TRANSACTION_RE = re.compile(
 
 TOTAL_RE = re.compile(r"Total da Fatura\s+R\$\s*([\d.,]+)")
 
+
 # ----------------------------------------------------------------------
 # Helpers
 # ----------------------------------------------------------------------
-
 def parse_money_value(value: str) -> float:
-    """Convert money string (e.g. '1.234,56' or '-3.080,88') to float."""
+    """Convert Brazilian currency string (e.g. '1.234,56' or '-3.080,88') to float."""
     return float(value.replace(".", "").replace(",", "."))
 
 
 def extract_total(text: str) -> float | None:
-    """Extract the official total from the line that contains 'Total da Fatura'."""
+    """Extract the official total from the 'Total da Fatura' line."""
     for line in text.splitlines():
         if match := TOTAL_RE.search(line):
             return parse_money_value(match.group(1))
@@ -37,11 +37,10 @@ def extract_total(text: str) -> float | None:
 # ----------------------------------------------------------------------
 def parse_statement(text: str) -> Dict[str, Any]:
     """
-    Parse a Brazilian credit-card statement, capturing all expenses and refunds.
-    Returns a dict with transactions, captured total and the official total.
+    Parse a Brazilian credit-card statement.
+    Captures only current-period transactions (excludes previous balance and payment).
+    Returns dict with transactions (expenses and refunds), captured total, and official total.
     """
-    
-    # Remove page markers and empty lines
     lines = [
         line.strip()
         for line in text.splitlines()
@@ -54,9 +53,7 @@ def parse_statement(text: str) -> Dict[str, Any]:
     for line in lines:
         upper_line = line.upper()
 
-        # --------------------------------------------------------------
         # 1. Lines that must be completely ignored
-        # --------------------------------------------------------------
         if any(phrase in upper_line for phrase in [
             "DATA DESCRIÇÃO PAÍS VALOR",
             "SALDO FATURA ANTERIOR",
@@ -65,28 +62,23 @@ def parse_statement(text: str) -> Dict[str, Any]:
         ]):
             continue
 
-        # Specific previous month payment – ignore it
-        if "PGTO DEBITO CONTA" in upper_line in line:
+        # Specific previous-month payment — ignore completely
+        if "PGTO DEBITO CONTA" in upper_line:
             continue
 
-        # --------------------------------------------------------------
-        # 2. Section headers → set category
-        # --------------------------------------------------------------
-        # Refunds / credits section
+        # 2. Section: Refunds / Credits → category "Refunds"
         if "PAGAMENTOS/CRÉDITOS" in upper_line:
             current_category = "Refunds"
             continue
 
-        # Regular categories (Restaurantes, Serviços, Supermercados, etc.)
+        # 3. Regular category headers (Restaurantes, Serviços, etc.)
         if (re.match(r"^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]*[A-Za-zÀ-ÿ]$", line)
                 and "R$" not in line
                 and "/" not in line):
             current_category = line.strip()
             continue
 
-        # --------------------------------------------------------------
-        # 3. Real transactions (start with DD/MM)
-        # --------------------------------------------------------------
+        # 4. Real transaction — starts with DD/MM
         if match := TRANSACTION_RE.match(line):
             d = match.groupdict()
             amount = parse_money_value(d["value"])
@@ -100,7 +92,7 @@ def parse_statement(text: str) -> Dict[str, Any]:
             })
             continue
 
-        # Uncomment for debugging unknown lines
+        # Optional debug: unknown lines
         # print(f"[IGNORED] {line}")
 
     total_captured = sum(t["amount"] for t in transactions)
@@ -111,6 +103,41 @@ def parse_statement(text: str) -> Dict[str, Any]:
         "total_captured": total_captured,
         "expected_total": expected_total
     }
+
+
+# ----------------------------------------------------------------------
+# CSV Export
+# ----------------------------------------------------------------------
+def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "statement_transactions.csv") -> None:
+    """
+    Export parsed transactions to a CSV file.
+    Includes a total row at the bottom.
+    """
+    fieldnames = ["date", "description", "category", "country", "amount"]
+
+    with open(filename, mode="w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for t in transactions:
+            row = {
+                "date": t["date"],
+                "description": t["description"],
+                "category": t["category"],
+                "country": t["country"],
+                "amount": f"{t['amount']:,.2f}"
+            }
+            writer.writerow(row)
+
+        # Add total row
+        writer.writerow({
+            "date": "",
+            "description": "TOTAL",
+            "category": "",
+            "country": "",
+            "amount": f"{sum(t['amount'] for t in transactions):,.2f}"
+        })
+
+    print(f"CSV exported successfully → {filename}")
 
 
 # ----------------------------------------------------------------------
@@ -126,16 +153,19 @@ def main() -> None:
     print(f"Sum of captured items : R$ {result['total_captured']:,.2f}")
 
     if result["expected_total"] is None:
-        print("Warning: Could not find 'Total da Fatura' in the statement.")
+        print("ERROR: Could not find 'Total da Fatura' in the statement.")
         return
 
     print(f"Statement total (PDF) : R$ {result['expected_total']:,.2f}")
 
+    # Validation: only export if totals match
     if abs(result["total_captured"] - result["expected_total"]) < 0.01:
         print("SUCCESS! All values match perfectly.")
+        export_to_csv(result["transactions"])
     else:
         diff = result["total_captured"] - result["expected_total"]
-        print(f"FAILURE! Difference of R$ {diff:,.2f}")
+        print(f"FAILURE! Totals do not match. Difference: R$ {diff:,.2f}")
+        print("CSV was NOT generated due to mismatch.")
 
 
 if __name__ == "__main__":
