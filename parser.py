@@ -108,6 +108,12 @@ def parse_statement(text: str) -> Dict[str, Any]:
 # ----------------------------------------------------------------------
 # CSV Export
 # ----------------------------------------------------------------------
+def format_brl(amount: float) -> str:
+    """Format float to Brazilian currency string (e.g. 3048.82 → '3.048,82')."""
+    formatted = f"{amount:,.2f}"
+    return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "statement_transactions.csv") -> None:
     """
     Export parsed transactions to a CSV file.
@@ -118,28 +124,27 @@ def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "statement
     with open(filename, mode="w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
+        
         for t in transactions:
-            row = {
-                "date": t["date"],
-                "description": t["description"],
-                "category": t["category"],
-                "country": t["country"],
-                "amount": f"{t['amount']:,.2f}"
-            }
-            writer.writerow(row)
+                writer.writerow({
+                    "date": t["date"],
+                    "description": t["description"],
+                    "category": t["category"],
+                    "country": t["country"],
+                    "amount": format_brl(t["amount"])
+                })
 
-        # Add total row
+        # Total row
+        total_amount = sum(t["amount"] for t in transactions)
         writer.writerow({
             "date": "",
             "description": "TOTAL",
             "category": "",
             "country": "",
-            "amount": f"{sum(t['amount'] for t in transactions):,.2f}"
+            "amount": format_brl(total_amount)
         })
 
     print(f"CSV exported successfully → {filename}")
-
-
 # ----------------------------------------------------------------------
 # Main / CLI
 # ----------------------------------------------------------------------
