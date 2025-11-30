@@ -41,3 +41,27 @@ class GoogleSheetsService:
         self.worksheet = self.spreadsheet.worksheet(worksheet_name)
 
         print(f"Connected to spreadsheet: {self.spreadsheet.title} → {worksheet_name}")
+        
+        
+    def get_data(self) -> tuple[list[str], list[list[Any]]]:
+        """
+        Fetch ALL data from the worksheet in one single API call.
+        
+        Returns:
+            headers: List of column names (first row)
+            rows: List of rows (each row is a list of values)
+        """
+
+        all_values = self.worksheet.get_all_values()
+
+        if not all_values:
+            print(f"Warning: Worksheet '{self.worksheet_name}' is empty")
+            return [], []
+
+        headers = all_values[0]                    # first row = column names
+        data_rows = all_values[1:]                 # everything else = actual data
+
+        print(f"Loaded {len(data_rows)} rows from '{self.worksheet_name}' "
+              f"with columns: {headers}")
+
+        return headers, data_rows
