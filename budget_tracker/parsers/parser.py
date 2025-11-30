@@ -114,7 +114,7 @@ def format_brl(amount: float) -> str:
     return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "statement_transactions.csv") -> None:
+def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "data/statement_transactions.csv") -> None:
     """
     Export parsed transactions to a CSV file.
     Includes a total row at the bottom.
@@ -149,7 +149,7 @@ def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "statement
 # Main / CLI
 # ----------------------------------------------------------------------
 def main() -> None:
-    with open("data.txt", "r", encoding="utf-8") as f:
+    with open("data/data.txt", "r", encoding="utf-8") as f:
         text = f.read()
 
     result = parse_statement(text)
