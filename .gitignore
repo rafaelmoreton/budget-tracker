@@ -2,3 +2,4 @@ data.txt
 statement_transactions.csv
 venv
 api_key
+.env
