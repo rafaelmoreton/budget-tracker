@@ -145,11 +145,14 @@ def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "data/stat
         })
 
     print(f"CSV exported successfully → {filename}")
+    
+    
 # ----------------------------------------------------------------------
-# Main / CLI
+# Public function for the CLI — this replaces the old main()
 # ----------------------------------------------------------------------
-def main() -> None:
-    with open("data/data.txt", "r", encoding="utf-8") as f:
+def parse_file(filepath: str) -> dict:
+    """Parse a credit card statement file and export CSV."""
+    with open(filepath, "r", encoding="utf-8") as f:
         text = f.read()
 
     result = parse_statement(text)
@@ -163,7 +166,6 @@ def main() -> None:
 
     print(f"Statement total (PDF) : R$ {result['expected_total']:,.2f}")
 
-    # Validation: only export if totals match
     if abs(result["total_captured"] - result["expected_total"]) < 0.01:
         print("SUCCESS! All values match perfectly.")
         export_to_csv(result["transactions"])
@@ -171,7 +173,3 @@ def main() -> None:
         diff = result["total_captured"] - result["expected_total"]
         print(f"FAILURE! Totals do not match. Difference: R$ {diff:,.2f}")
         print("CSV was NOT generated due to mismatch.")
-
-
-if __name__ == "__main__":
-    main()
