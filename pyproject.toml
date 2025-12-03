@@ -1,0 +1,87 @@
+[project]
+name = "budget-tracker"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Rafael Moreton Baggio",email = "rafaelmoreton@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<4"
+dependencies = [
+    "cachetools (==6.2.2)",
+    "certifi (==2025.11.12)",
+    "charset-normalizer (==3.4.4)",
+    "click (==8.3.1)",
+    "google-api-core (==2.28.1)",
+    "google-api-python-client (==2.187.0)",
+    "google-auth (==2.41.1)",
+    "google-auth-httplib2 (==0.2.1)",
+    "google-auth-oauthlib (==1.2.3)",
+    "googleapis-common-protos (==1.72.0)",
+    "gspread (==6.2.1)",
+    "httplib2 (==0.31.0)",
+    "idna (==3.11)",
+    "markdown-it-py (==4.0.0)",
+    "mdurl (==0.1.2)",
+    "oauthlib (==3.3.1)",
+    "proto-plus (==1.26.1)",
+    "protobuf (==6.33.1)",
+    "pyasn1 (==0.6.1)",
+    "pyasn1-modules (==0.4.2)",
+    "pygments (==2.19.2)",
+    "pyparsing (==3.2.5)",
+    "python-dotenv (==1.2.1)",
+    "requests (==2.32.5)",
+    "requests-oauthlib (==2.0.0)",
+    "rich (==14.2.0)",
+    "rsa (==4.9.1)",
+    "shellingham (==1.5.4)",
+    "typer (==0.20.0)",
+    "typing-extensions (==4.15.0)",
+    "uritemplate (==4.2.0)",
+    "urllib3 (==2.5.0)"
+]
+
+[dependency-groups]
+dev = [
+    "cachetools (==6.2.2)",
+    "certifi (==2025.11.12)",
+    "charset-normalizer (==3.4.4)",
+    "click (==8.3.1)",
+    "google-api-core (==2.28.1)",
+    "google-api-python-client (==2.187.0)",
+    "google-auth (==2.41.1)",
+    "google-auth-httplib2 (==0.2.1)",
+    "google-auth-oauthlib (==1.2.3)",
+    "googleapis-common-protos (==1.72.0)",
+    "gspread (==6.2.1)",
+    "httplib2 (==0.31.0)",
+    "idna (==3.11)",
+    "markdown-it-py (==4.0.0)",
+    "mdurl (==0.1.2)",
+    "oauthlib (==3.3.1)",
+    "proto-plus (==1.26.1)",
+    "protobuf (==6.33.1)",
+    "pyasn1 (==0.6.1)",
+    "pyasn1-modules (==0.4.2)",
+    "pygments (==2.19.2)",
+    "pyparsing (==3.2.5)",
+    "python-dotenv (==1.2.1)",
+    "requests (==2.32.5)",
+    "requests-oauthlib (==2.0.0)",
+    "rich (==14.2.0)",
+    "rsa (==4.9.1)",
+    "shellingham (==1.5.4)",
+    "typer (==0.20.0)",
+    "typing-extensions (==4.15.0)",
+    "uritemplate (==4.2.0)",
+    "urllib3 (==2.5.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+budget-tracker = "budget_tracker.main:main"
