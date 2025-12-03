@@ -1,8 +1,21 @@
-# parser.py (or main.py, or wherever you run the code)
-from budget_tracker.sheets.client import GoogleSheetsService
+import typer
 
-def main() -> None:
-    sheets = GoogleSheetsService('Página9')
+app = typer.Typer()
 
-    all_data = sheets.get_data()
-    print("Current sheet content:", all_data)
+@app.callback()
+def callback():
+    """
+    Budget tracker
+    """
+
+@app.command()
+def main(name: str):
+    print(f"Hello {name}")
+    
+@app.command()
+def novo(name: str):
+    print(f"Hello {name}")
+
+
+if __name__ == "__main__":
+    app()

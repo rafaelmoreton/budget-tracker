@@ -1,6 +1,6 @@
 data/
 .venv
-api_key
+credentials/
 .env
 __pycache__/
 *pyc
