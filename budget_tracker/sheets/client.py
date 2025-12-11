@@ -65,3 +65,26 @@ class GoogleSheetsService:
               f"with columns: {headers}")
 
         return headers, data_rows
+    
+    def ensure_worksheet(self, worksheet_name: str) -> gspread.Worksheet:
+        """
+        Get a worksheet by name, creating it if it doesn't exist.
+        """
+        try:
+            worksheet = self.spreadsheet.worksheet(worksheet_name)
+            print(f"Worksheet '{worksheet_name}' already exists.")
+        except gspread.exceptions.WorksheetNotFound:
+            worksheet = self.spreadsheet.add_worksheet(title=worksheet_name, rows=100, cols=20)
+            print(f"Created new worksheet '{worksheet_name}'.")
+        return worksheet
+
+    def insert_data(self, worksheet: gspread.Worksheet, data: List[List[Any]]) -> None:
+        """
+        Insert a list of rows into the worksheet, clearing existing data first.
+        """
+        try:
+            worksheet.clear()
+            worksheet.update(range_name='A1', values=data)
+            print(f"Inserted {len(data) - 1} rows into '{worksheet.title}'.")
+        except APIError as e:
+            raise ValueError(f"Error inserting data: {str(e)}")
