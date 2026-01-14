@@ -5,6 +5,18 @@ from typing import Dict, Any
 # ----------------------------------------------------------------------
 # Regexes
 # ----------------------------------------------------------------------
+BB_CREDIT_TRANSACTION_RE = re.compile(
+    r"^(?P<date>\d{2}\.\d{2}\.\d{4})"
+    r"(?P<description>.+?)"
+    r"\s{2,}(?P<country>[A-Z]{2})"
+    r"\s+(?P<value>-?[\d.,]+)\s+"
+    r"[\d.,]+$"
+)
+
+BB_CREDIT_TOTAL_RE = re.compile(
+    r"^\s*Total\s+[\d\s]+\s+([\d.,]+)\s+[\d.,]+$"
+)
+
 TRANSACTION_RE = re.compile(
     r"^(?P<date>\d{2}/\d{2})\s+"
     r"(?P<description>.+?)"
@@ -24,16 +36,22 @@ def parse_money_value(value: str) -> float:
     return float(value.replace(".", "").replace(",", "."))
 
 
-def extract_total(text: str) -> float | None:
+def extract_total(text: str, total_re: re.Pattern) -> float | None:
     """Extract the official total from the 'Total da Fatura' line."""
     for line in text.splitlines():
-        if match := TOTAL_RE.search(line):
+        if match := total_re.search(line):
             return parse_money_value(match.group(1))
     return None
 
+def is_bb_credit_card(text: str) -> bool:
+    return (
+        "SISBB - Sistema de Informações Banco do Brasil" in text
+        and "Fatura do Cartão de Crédito" in text
+    )
+
 
 # ----------------------------------------------------------------------
-# Core parser
+# Core parsers
 # ----------------------------------------------------------------------
 def parse_statement(text: str) -> Dict[str, Any]:
     """
@@ -96,14 +114,93 @@ def parse_statement(text: str) -> Dict[str, Any]:
         # print(f"[IGNORED] {line}")
 
     total_captured = sum(t["amount"] for t in transactions)
-    expected_total = extract_total(text)
+    expected_total = extract_total(text, TOTAL_RE)
 
     return {
         "transactions": transactions,
         "total_captured": total_captured,
         "expected_total": expected_total
     }
+    
+def parse_bb_credit_card(text: str) -> Dict[str, Any]:
+    """
+    Parse Banco do Brasil (SISBB) credit card statement.
+    Returns the same structure as parse_statement().
+    """
 
+    # 0. Extract only the DEMONSTRATIVO section
+    raw_lines = []
+    in_section = False
+
+    for line in text.splitlines():
+        if "DEMONSTRATIVO" in line:
+            in_section = True
+            continue
+
+        if "RESUMO EM REAL" in line:
+            break
+
+        if in_section and line.strip():
+            raw_lines.append(line.rstrip())
+
+    # 1. Normalize lines (same intent as parse_statement)
+    lines = [line.strip() for line in raw_lines]
+
+    transactions = []
+    current_category: str | None = None
+
+    for line in lines:
+        upper_line = line.upper()
+
+        # 2. Lines that must be completely ignored
+        if any(phrase in upper_line for phrase in [
+            "DATA     TRANSAÇÕES",
+            "SALDO FATURA ANTERIOR",
+            "SUBTOTAL",
+            "TOTAL",
+            "----",
+        ]):
+            continue
+
+        # 3. Refunds / credits section
+        if "PAGAMENTOS/CRÉDITOS" in upper_line:
+            current_category = "Refunds"
+            continue
+
+        # 4. Regular category headers
+        if (
+            re.match(r"^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\s]*[A-Za-zÀ-ÿ]$", line)
+            and not re.search(r"\d", line)
+        ):
+            current_category = line.strip()
+            continue
+
+        # 5. Real transaction — starts with DD.MM.YYYY
+        if match := BB_CREDIT_TRANSACTION_RE.match(line):
+            d = match.groupdict()
+            amount = parse_money_value(d["value"])
+
+            transactions.append({
+                "date": d["date"],
+                "description": d["description"].strip(),
+                "category": current_category or "Uncategorized",
+                "country": d["country"],
+                "amount": amount,
+            })
+            continue
+
+        # Optional debug
+        # print(f"[IGNORED] {line}")
+
+    total_captured = sum(t["amount"] for t in transactions)
+    expected_total = extract_total(text, BB_CREDIT_TOTAL_RE)
+
+    return {
+        "transactions": transactions,
+        "total_captured": total_captured,
+        "expected_total": expected_total,
+    }
+        
 
 # ----------------------------------------------------------------------
 # CSV Export
@@ -156,7 +253,10 @@ def parse_file(filepath: str, who_expended: str) -> dict:
     with open(filepath, "r", encoding="utf-8") as f:
         text = f.read()
 
-    result = parse_statement(text)
+    if is_bb_credit_card(text):
+        result = parse_bb_credit_card(text)
+    else:
+        result = parse_statement(text)
 
     print(f"Captured transactions : {len(result['transactions'])}")
     print(f"Sum of captured items : R$ {result['total_captured']:,.2f}")
