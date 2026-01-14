@@ -14,7 +14,7 @@ class GoogleSheetsService:
 
     def __init__(
         self,
-        worksheet_name: str,
+        worksheet_name: Optional[str] = None,
         credentials_path: Optional[str] = None,
         spreadsheet_id: Optional[str] = None,
     ):
@@ -33,14 +33,13 @@ class GoogleSheetsService:
         if not self.credentials_path or not self.spreadsheet_id:
             raise ValueError("Missing Google Sheets credentials or ID in .env")
         
-        if not self.worksheet_name:
-            raise ValueError("Missing worksheet name")
-
         self.client = gspread.service_account(filename=self.credentials_path)
         self.spreadsheet = self.client.open_by_key(self.spreadsheet_id)
-        self.worksheet = self.spreadsheet.worksheet(worksheet_name)
-
-        print(f"Connected to spreadsheet: {self.spreadsheet.title} → {worksheet_name}")
+        if self.worksheet_name:
+            self.worksheet = self.spreadsheet.worksheet(worksheet_name)
+            print(f"Connected to spreadsheet: {self.spreadsheet.title} → {worksheet_name}")
+        else:
+            print(f"Connected to spreadsheet: {self.spreadsheet.title}")
         
         
     def get_data(self) -> tuple[list[str], list[list[Any]]]:

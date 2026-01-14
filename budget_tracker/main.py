@@ -28,7 +28,7 @@ def generate_references(transactions_sheet: str = 'Lançamentos', references_she
     references_data = generate_references(headers, data_rows)
     
     # Save to references sheet
-    references_service = GoogleSheetsService(references_sheet)
+    references_service = GoogleSheetsService()
     target_worksheet = references_service.ensure_worksheet(references_sheet)
     references_service.insert_data(target_worksheet, references_data)
 
