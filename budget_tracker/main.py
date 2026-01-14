@@ -12,10 +12,10 @@ def callback():
     """
     
 @app.command()
-def parse(file_path: str):
+def parse(file_path: str, who_expended: str):
     """Parse a bank statement file"""
     print(f"Parsing file: {file_path}")
-    parse_file(file_path)
+    parse_file(file_path, who_expended)
     print("Parse complete")
     
 @app.command()

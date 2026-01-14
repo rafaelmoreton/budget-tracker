@@ -114,12 +114,12 @@ def format_brl(amount: float) -> str:
     return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "budget_tracker/data/statement_transactions.csv") -> None:
+def export_to_csv(transactions: list[Dict[str, Any]], who_expended: str, filename: str = "budget_tracker/data/statement_transactions.csv") -> None:
     """
     Export parsed transactions to a CSV file.
     Includes a total row at the bottom.
     """
-    fieldnames = ["date", "description", "category", "country", "amount"]
+    fieldnames = ["date", "who", "description", "category", "country", "amount"]
 
     with open(filename, mode="w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -128,6 +128,7 @@ def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "budget_tr
         for t in transactions:
                 writer.writerow({
                     "date": t["date"],
+                    "who": who_expended,
                     "description": t["description"],
                     "category": t["category"],
                     "country": t["country"],
@@ -150,7 +151,7 @@ def export_to_csv(transactions: list[Dict[str, Any]], filename: str = "budget_tr
 # ----------------------------------------------------------------------
 # Public function for the CLI — this replaces the old main()
 # ----------------------------------------------------------------------
-def parse_file(filepath: str) -> dict:
+def parse_file(filepath: str, who_expended: str) -> dict:
     """Parse a credit card statement file and export CSV."""
     with open(filepath, "r", encoding="utf-8") as f:
         text = f.read()
@@ -168,7 +169,7 @@ def parse_file(filepath: str) -> dict:
 
     if abs(result["total_captured"] - result["expected_total"]) < 0.01:
         print("SUCCESS! All values match perfectly.")
-        export_to_csv(result["transactions"])
+        export_to_csv(result["transactions"], who_expended)
     else:
         diff = result["total_captured"] - result["expected_total"]
         print(f"FAILURE! Totals do not match. Difference: R$ {diff:,.2f}")
