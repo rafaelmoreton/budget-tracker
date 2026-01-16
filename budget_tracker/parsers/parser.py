@@ -8,9 +8,9 @@ from typing import Dict, Any
 BB_CREDIT_TRANSACTION_RE = re.compile(
     r"^(?P<date>\d{2}\.\d{2}\.\d{4})"
     r"(?P<description>.+?)"
-    r"\s{2,}(?P<country>[A-Z]{2})"
-    r"\s+(?P<value>-?[\d.,]+)\s+"
-    r"[\d.,]+$"
+    r"\s*(?P<country>[A-Z]{2})"
+    r"\s+(?P<value>-?[\d.,]+)"
+    r"\s+[\d.,]+$"
 )
 
 BB_CREDIT_TOTAL_RE = re.compile(
@@ -191,6 +191,7 @@ def parse_bb_credit_card(text: str) -> Dict[str, Any]:
 
         # Optional debug
         # print(f"[IGNORED] {line}")
+        # print(repr(line))
 
     total_captured = sum(t["amount"] for t in transactions)
     expected_total = extract_total(text, BB_CREDIT_TOTAL_RE)
